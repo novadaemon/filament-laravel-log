@@ -41,31 +41,34 @@ class ViewLog extends Page
 
     public function read(): string
     {
-        if (! $this->logFile) {
+        if (! $this->logFile || ! $this->fileResidesInLogDirs($this->logFile)) {
+            $this->logFile = null;
             return '';
         }
 
         return File::get($this->logFile);
     }
 
-    public function write($content = ''): void
+    public function clear(): void
     {
-        if (! $this->logFile) {
+        if (! $this->logFile || ! $this->fileResidesInLogDirs($this->logFile)) {
+            $this->logFile = null;
             return;
         }
 
-        File::put($this->logFile, $content);
-    }
-
-    public function clear(): void
-    {
-        $this->write();
+        File::put($this->logFile, '');
         $this->refresh();
     }
 
     public function refresh(): void
     {
         $this->dispatch('logContentUpdated', content: $this->read());
+    }
+
+    protected function fileResidesInLogDirs(string $logFile): bool
+    {
+        return collect(FilamentLaravelLogPlugin::get()->getLogDirs())
+            ->contains(fn (string $logDir) => str_contains($logFile, $logDir));
     }
 
     protected function getFinder(): Finder
